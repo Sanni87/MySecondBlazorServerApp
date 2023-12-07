@@ -1,0 +1,72 @@
+@page "/sections/mylist"
+@using Microsoft.AspNetCore.SignalR;
+@using MySecondBlazorServerApp.Pages
+@using MySecondBlazorServerApp.Sections.AnotherOne.Components
+@using MySecondBlazorServerApp.Sections.AnotherOne.Hubs;
+@using MySecondBlazorServerApp.Sections.AnotherOne.Hubs.Interfaces;
+@using MySecondBlazorServerApp.Sections.AnotherOne.Hubs.Params.ReceiveMessage;
+
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject IHubContext<AnotherOneHub, IAnotherOneHub> _anotherOneHub
+
+<h3>MyList!</h3>
+
+<Counter />
+
+<AnotherOne />
+
+<button class="btn btn-primary" @onclick="SaySectionHello">Say section hello</button>
+<button class="btn btn-primary" @onclick="SaySectionInstanceHello">Say section class hello</button>
+<button class="btn btn-primary" @onclick="UpdateAnotherOneData">Update Another One Data</button>
+
+@code {
+    private IJSObjectReference jsModule;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import", "/js/sections/myList.section.js");
+
+            await SaySectionInstanceHello();
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (jsModule is not null)
+        {
+            await jsModule.DisposeAsync();
+        }
+    }
+
+    private async Task SaySectionHello() 
+    {
+        if (jsModule != null) {
+            await jsModule.InvokeVoidAsync("sayHello");
+        }
+    }
+
+    private async Task SaySectionInstanceHello() 
+    {
+        if (jsModule != null) {
+            await jsModule.InvokeVoidAsync("instance.sayHello");
+        }
+    }
+
+    private async Task UpdateAnotherOneData()
+    {
+        var random = new Random();
+        var randSeconds = random.Next(4, 10);
+        var args = new ReceiveMessageParams
+        {
+            Age = randSeconds,
+            Name = randSeconds % 2 == 0 ? "Makina" : "Makinon",
+            IsCool = randSeconds % 4 > 2 ? true : false
+        };
+
+        await _anotherOneHub.Clients.All.ReceiveMessage(args);
+    }
+}

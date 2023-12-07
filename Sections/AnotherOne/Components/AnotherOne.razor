@@ -1,0 +1,64 @@
+@using Microsoft.AspNetCore.SignalR.Client
+@using MySecondBlazorServerApp.Sections.AnotherOne.Hubs.Params.ReceiveMessage;
+@inject NavigationManager Navigation
+
+@namespace MySecondBlazorServerApp.Sections.AnotherOne.Components
+
+<h3>Another one!</h3>
+
+@if (Model == null)
+{
+    <p>
+        Waiting updates...
+    </p>
+}
+else 
+{
+    <p>
+        <span><strong>Age:</strong> @Model.Age</span>
+    </p>
+    <p>
+        <span><strong>Name:</strong> @Model.Name</span>
+    </p>
+    <p>
+        <span><strong>IsCool:</strong> @Model.IsCool</span>
+    </p>
+}
+
+@code {
+    private HubConnection hubConnection;
+
+    private ReceiveMessageParams Model;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/sections/anotherOneHub"), (opts) =>
+            {
+                opts.HttpMessageHandlerFactory = (message) =>
+                {
+                    if (message is HttpClientHandler clientHandler)
+                        // always verify the SSL certificate
+                        clientHandler.ServerCertificateCustomValidationCallback +=
+                            (sender, certificate, chain, sslPolicyErrors) => { return true; };
+                    return message;
+                };
+            })
+            .Build();
+
+        hubConnection.On<ReceiveMessageParams>("ReceiveMessage", async (args) =>
+        {
+            await SafeUpdateModel(args);
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    private async Task SafeUpdateModel(ReceiveMessageParams newModel)
+    {
+        await InvokeAsync(() => {
+            Model = newModel;
+            StateHasChanged();
+        });
+    }
+}

@@ -1,0 +1,24 @@
+﻿@page "/counter"
+@inject IJSRuntime JS
+
+<h1>Counter</h1>
+
+<p>Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+<button class="btn btn-primary" @onclick="SayGlobalHello">Say global hello</button>
+
+@code {
+    private int currentCount = 0;
+
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+
+    private async Task SayGlobalHello()
+    {
+        var result = await JS.InvokeAsync<string>("$R.app.sayHello");
+    }
+}
